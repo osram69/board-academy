@@ -1,0 +1,35 @@
+# Avvio:                      docker compose up -d --build
+# Con il tunnel Cloudflare:   docker compose --profile tunnel up -d --build
+# Variabili nel file .env (vedi .env.example).
+services:
+  board:
+    build:
+      context: .
+      args:
+        VITE_TLDRAW_LICENSE_KEY: ${VITE_TLDRAW_LICENSE_KEY:-}
+    restart: unless-stopped
+    environment:
+      BOARD_SECRET: ${BOARD_SECRET:?imposta BOARD_SECRET nel file .env}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
+    volumes:
+      - ./data:/data # board e immagini: sopravvivono a ricostruzioni e aggiornamenti
+    ports:
+      - "127.0.0.1:3030:3030" # solo dalla macchina stessa (prove); il tunnel usa la rete interna, non questa porta
+    # limiti per non togliere risorse a Home Assistant e Jellyfin che girano sullo stesso Raspberry
+    mem_limit: 768m
+    cpus: 2
+    networks: [boardnet]
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?imposta TUNNEL_TOKEN nel file .env}
+    depends_on: [board]
+    networks: [boardnet]
+
+# rete separata: il tunnel vede solo il container della board, non gli altri servizi del Raspberry
+networks:
+  boardnet: {}

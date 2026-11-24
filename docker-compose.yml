@@ -26,7 +26,7 @@ services:
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     environment:
-      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?imposta TUNNEL_TOKEN nel file .env}
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-} # obbligatorio solo con --profile tunnel (senza token cloudflared non si connette)
     depends_on: [board]
     networks: [boardnet]
 
